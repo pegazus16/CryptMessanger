@@ -1,0 +1,46 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip git zip unzip openjdk-17-jdk \
+            build-essential libssl-dev zlib1g-dev libffi-dev libsqlite3-dev \
+            libsdl2-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev
+
+      - name: Install pip packages
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install cython==0.29.35 buildozer==2.0.0 numpy
+          python3 -m pip install kivy==2.1.0 kivymd
+
+      - name: Build APK
+        run: |
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
+          buildozer -v android debug || buildozer -v android debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cryptoapp-apk
+          path: bin/*.apk
